@@ -25,10 +25,9 @@ from reportlab.lib.units import mm
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# page_iconの絵文字を削除
 st.set_page_config(page_title="Nabi AI Tarot Reader", layout="centered")
 
-# --- プレミアム・ティファニーブルーUI用のカスタムCSS ---
+# --- 💎 プレミアム・ティファニーブルーUI用のカスタムCSS ---
 custom_css = """
 <style>
 /* 全体の背景色とベース文字色 */
@@ -78,6 +77,37 @@ h3 {
     margin-top: 25px !important;
     margin-bottom: 25px !important;
     box-shadow: 0 2px 5px rgba(30, 132, 127, 0.3);
+}
+
+/* 💎 ファイルアップローダー（画像選択枠）のプレミアム化 */
+[data-testid="stFileUploader"] label p {
+    color: #1E847F !important; /* 「画像を選択...」をティファニーブルーに */
+    font-weight: bold !important;
+    font-size: 1.1rem !important;
+}
+[data-testid="stFileUploadDropzone"] {
+    background-color: #FFFFFF !important; /* 背景を真っ白にして清潔感を出す */
+    border: 2px dashed #81D8D0 !important; /* 枠線を明るいティファニーブルーの点線に */
+    border-radius: 8px !important;
+}
+[data-testid="stFileUploadDropzone"] * {
+    color: #1C2833 !important; /* 中の案内テキスト（200MB etc.）を濃いグレーに */
+}
+[data-testid="stFileUploadDropzone"] button {
+    background-color: #1E847F !important;
+    border: none !important;
+    border-radius: 4px !important;
+}
+[data-testid="stFileUploadDropzone"] button,
+[data-testid="stFileUploadDropzone"] button * {
+    color: #FFFFFF !important; /* Uploadボタンの文字は白 */
+}
+[data-testid="stFileUploadDropzone"] button:hover {
+    background-color: #13524E !important;
+}
+[data-testid="stFileUploadDropzone"] button:hover,
+[data-testid="stFileUploadDropzone"] button:hover * {
+    color: #D4AF37 !important; /* ホバー時にゴールド文字 */
 }
 
 /* サイドバーのデザイン */
@@ -216,7 +246,6 @@ def generate_pdf_report(chat_history, df, img):
     pdfmetrics.registerFont(UnicodeCIDFont('HeiseiMin-W3'))
     pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
     
-    # カラーパレット
     dark_tiffany = colors.HexColor('#1E847F')
     deep_tiffany = colors.HexColor('#13524E')
     deep_slate = colors.HexColor('#1C2833')
@@ -233,7 +262,6 @@ def generate_pdf_report(chat_history, df, img):
 
     elements = []
     
-    # 1. 重厚なタイトルバナーセクション
     banner_content = [
         [Paragraph("Nabi AI Tarot Reader", banner_title_style)],
         [Spacer(1, 5)],
@@ -252,7 +280,6 @@ def generate_pdf_report(chat_history, df, img):
     elements.append(title_table)
     elements.append(Spacer(1, 25))
     
-    # 2. 画像セクション
     img_buffer = BytesIO()
     img.save(img_buffer, format='PNG')
     img_buffer.seek(0)
@@ -262,7 +289,6 @@ def generate_pdf_report(chat_history, df, img):
     elements.append(RLImage(img_buffer, width=img_w, height=img_h))
     elements.append(Spacer(1, 20))
     
-    # 3. カード情報
     elements.append(Paragraph("展開されたカード", heading_style))
     
     table_data = [['位置', 'カード名', '向き', '数字']]
@@ -288,7 +314,6 @@ def generate_pdf_report(chat_history, df, img):
     elements.append(card_table)
     elements.append(Spacer(1, 20))
     
-    # 4. 鑑定セッション記録
     elements.append(Paragraph("鑑定セッション記録", heading_style))
     elements.append(Spacer(1, 10))
     
@@ -324,7 +349,6 @@ def generate_pdf_report(chat_history, df, img):
                 if match:
                     flush_buffer()
                     h_text = match.group(2)
-                    # 記号を排除し、シンプルな角括弧に変更
                     elements.append(Paragraph(f"■ {h_text}", chat_heading_style))
                 elif line == "":
                     flush_buffer()
@@ -349,7 +373,6 @@ if "chat_history" not in st.session_state:
 # ==========================================
 # 4. メインUIの構築
 # ==========================================
-# Web上のタイトル
 st.markdown("""
 <div class="premium-title-banner">
     <h1>Nabi AI Tarot Reader</h1>
@@ -405,7 +428,6 @@ elif st.session_state.step == "verify":
     
     col1, col2 = st.columns(2)
     with col1:
-        # icon指定を削除して文字化け防止
         if st.button("画像を選び直す"):
             st.session_state.step = "upload"
             st.rerun()
@@ -442,7 +464,6 @@ elif st.session_state.step == "chat":
         for index, row in st.session_state.final_data.iterrows():
             confirmed_text += f"- {row['ポジション']}: {row['カード名']} (数字: {row['数字']}, {row['向き']})\n"
         
-        # tarot_prompt.txt の読み込み
         tarot_prompt_file = "tarot_prompt.txt"
         tarot_base_prompt = ""
         if os.path.exists(tarot_prompt_file):
