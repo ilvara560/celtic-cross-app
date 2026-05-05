@@ -25,24 +25,34 @@ from reportlab.lib.units import mm
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-st.set_page_config(page_title="Nabi AI Tarot Reader", layout="centered")
+st.set_page_config(page_title="Nabi AI Tarot Reader", layout="wide")
 
-# --- プレミアムデザイン・フル適用 CSS ---
+# --- プレミアム＆グラフィカル CSS ---
 custom_css = """
 <style>
-/* 1. カラーリング ＆ 2. 余白 */
+/* ✨ NEW: 高級欧文フォント（Cinzel）のインポート */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap');
+
+/* ✨ NEW: 優雅なフェードインアニメーション */
+@keyframes elegantFadeIn {
+    0% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* 画面全体にアニメーションを適用 */
 .stApp {
+    animation: elegantFadeIn 1.0s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     background-color: #FAFCFC;
     color: #2C3E50;
 }
 
-/* 3. タイポグラフィ */
-h1, h2, h3, p, .mincho {
+/* タイポグラフィ */
+h2, h3, p, .mincho {
     font-family: "Hiragino Mincho ProN", "Yu Mincho", serif !important;
     letter-spacing: 0.05em; 
 }
 
-/* 4. ディテール：重厚かつ繊細なタイトルバナー */
+/* 重厚かつ繊細なタイトルバナー */
 .premium-title-banner {
     background: linear-gradient(135deg, #1A2525, #133B3A);
     padding: 50px 20px;
@@ -55,20 +65,22 @@ h1, h2, h3, p, .mincho {
 }
 .premium-title-banner h1 {
     color: #FFFFFF !important;
-    font-size: 2.4rem !important;
-    letter-spacing: 0.1em !important;
+    font-size: 2.6rem !important;
+    letter-spacing: 0.12em !important;
     padding: 0 !important;
     margin: 0 0 12px 0 !important;
-    font-weight: 300 !important;
+    font-weight: 400 !important;
+    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
 }
 .premium-title-banner p {
     color: #C5A059 !important;
     font-size: 1.1rem !important;
     letter-spacing: 0.15em !important;
     margin: 0 !important;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif !important;
 }
 
-/* ディテール：ベタ塗りを廃止し、ミニマルな下線の見出しへ */
+/* 見出しのスタイル */
 h3 {
     background-color: transparent !important;
     color: #133B3A !important;
@@ -82,7 +94,7 @@ h3 {
     font-weight: 400 !important;
 }
 
-/* 余白とディテール：ファイルアップローダーの洗練 */
+/* ファイルアップローダーの洗練 */
 [data-testid="stFileUploader"] label p {
     color: #133B3A !important;
     font-weight: 400 !important;
@@ -147,6 +159,71 @@ div.stButton > button[kind="primary"]:hover {
 }
 [data-testid="stSidebar"] hr {
     border-color: #2C3E50;
+}
+
+/* 画像の最適化（最大幅制限と角丸） */
+img {
+    max-width: 100% !important; 
+    height: auto !important; 
+    border-radius: 8px !important; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+}
+[data-testid="stSidebar"] img {
+    max-width: 100% !important;
+    margin-bottom: 15px;
+}
+
+/* グラフィカル・カードUIスタイル */
+.tarot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+    margin-bottom: 30px;
+}
+.tarot-card {
+    background: linear-gradient(145deg, #1A2525, #133B3A);
+    border: 1px solid #3A5050;
+    border-radius: 6px;
+    padding: 15px 10px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 110px;
+}
+.tarot-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(197, 160, 89, 0.2);
+    border-color: #C5A059;
+}
+.tarot-pos {
+    color: #E0EBEB;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(197, 160, 89, 0.4);
+    padding-bottom: 4px;
+    width: 80%;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
+}
+.tarot-name {
+    color: #FFFFFF;
+    font-size: 1.05rem;
+    font-weight: 400;
+    margin: 0 0 8px 0;
+    line-height: 1.2;
+    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
+}
+.tarot-detail {
+    color: #C5A059;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
 }
 </style>
 """
@@ -361,32 +438,31 @@ st.markdown("""
 # STEP 1: 画像のアップロード
 # ------------------------------------------
 if st.session_state.step == "upload":
-    st.write("ケルト十字展開のタロット画像をアップロードしてください。")
+    # ✨ NEW: 言葉遣いの洗練
+    st.write("導きを求めるケルト十字展開の画像をアップロードしてください。")
     uploaded_file = st.file_uploader("画像を選択...", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
-        # --- 画像回転のためのメモリ管理 ---
-        # 新しいファイルがアップロードされた場合、初期状態の画像をセットする
         if "uploaded_filename" not in st.session_state or st.session_state.uploaded_filename != uploaded_file.name:
             st.session_state.uploaded_filename = uploaded_file.name
             st.session_state.current_image = PIL.Image.open(uploaded_file)
         
-        st.image(st.session_state.current_image, caption="現在の画像", width="stretch")
+        col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
+        with col_img2:
+            st.image(st.session_state.current_image, caption="現在の画像", width="stretch")
+            
+        st.markdown("<p style='font-size:0.9em; color:#7F8C8D; margin-bottom: 20px; text-align:center;'>※ 画像が横向きの場合は、正しい向きに回転してから解析を実行してください。</p>", unsafe_allow_html=True)
         
-        # エレガントな注意書き
-        st.markdown("<p style='font-size:0.9em; color:#7F8C8D; margin-bottom: 20px;'>※ 画像が横向きの場合は、正しい向きに回転してから解析を実行してください。</p>", unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("画像を90度回転する"):
-                # expand=True で画像が見切れないようにキャンバスを拡張して回転（右回り）
+        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 2, 2, 1])
+        with col_btn2:
+            if st.button("画像の向きを整える (90度回転)"):
                 st.session_state.current_image = st.session_state.current_image.rotate(-90, expand=True)
-                st.rerun() # 画面を再描画して回転した画像を表示
+                st.rerun()
                 
-        with col2:
-            if st.button("AIでカードを解析する", type="primary"):
-                with st.spinner("Nabiが画像を解析中..."):
-                    # 解析には「回転済み」の画像を渡す
+        with col_btn3:
+            # ✨ NEW: 言葉遣いの洗練
+            if st.button("カードの叡智を読み解く", type="primary"):
+                with st.spinner("Nabiが星の配置とカードの声を読み解いています..."):
                     raw_data = analyze_image(st.session_state.current_image)
                     df_data = []
                     positions = [f"pos_{i}" for i in range(1, 11)]
@@ -399,7 +475,6 @@ if st.session_state.step == "upload":
                             "向き": card.get("orientation", "")
                         })
                     st.session_state.original_df = pd.DataFrame(df_data)
-                    # 次のステップやPDF出力に引き継ぐため、最終的な画像を保存
                     st.session_state.image = st.session_state.current_image 
                     st.session_state.step = "verify"
                     st.rerun()
@@ -408,8 +483,9 @@ if st.session_state.step == "upload":
 # STEP 2: 解析結果の確認と修正
 # ------------------------------------------
 elif st.session_state.step == "verify":
-    st.markdown("### 解析結果の確認")
-    st.write("Nabiが読み取ったカード情報です。間違っている箇所があれば、表のセルをクリックして直接修正してください。")
+    st.markdown("### 読み解いたカードの確認")
+    # ✨ NEW: 言葉遣いの洗練
+    st.write("Nabiが受け取ったカードの啓示です。もし本来の展開と異なる場合は、表のセルをクリックして直接修正し、Nabiに正しい道を教えてください。")
     
     edited_df = st.data_editor(
         st.session_state.original_df, 
@@ -419,15 +495,15 @@ elif st.session_state.step == "verify":
         height=400 
     )
     
-    st.warning("確認が完了したら、下のボタンを押して占いを開始してください。（修正した内容はNabiが自動学習します）")
+    st.warning("確認が完了したら、下のボタンを押して鑑定の扉を開いてください。（修正した内容はNabiが自動で記憶に留めます）")
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("画像を選び直す"):
+        if st.button("別のカードを展開する"):
             st.session_state.step = "upload"
             st.rerun()
     with col2:
-        if st.button("占いを開始する", type="primary"):
+        if st.button("鑑定の扉を開く", type="primary"):
             differences = []
             for index, row in edited_df.iterrows():
                 orig_row = st.session_state.original_df.iloc[index]
@@ -438,10 +514,10 @@ elif st.session_state.step == "verify":
                         "AIの判定": {"name": orig_row["カード名"], "number": orig_row["数字"], "orientation": orig_row["向き"]}
                     })
             if differences:
-                with st.spinner("修正内容をもとに、Nabiが見分け方のコツを学習・アップデート中..."):
+                with st.spinner("新たな叡智をNabiの記憶に深く刻んでいます..."):
                     success = update_learning_prompt(differences, st.session_state.image)
                     if success:
-                        st.success("Nabiがあなたの修正から学習しました。")
+                        st.success("Nabiがあなたの教えを記憶に留めました。")
             
             st.session_state.final_data = edited_df
             st.session_state.step = "chat"
@@ -474,7 +550,7 @@ elif st.session_state.step == "chat":
         {confirmed_text}
         """
         
-        with st.spinner("Nabiが準備中..."):
+        with st.spinner("鑑定の場を清め、準備を整えています..."):
             try:
                 contents = [types.Content(role="user", parts=[types.Part.from_text(text=system_instruction)])]
                 response = client.models.generate_content(
@@ -484,7 +560,7 @@ elif st.session_state.step == "chat":
                 )
                 ai_text = response.text
             except Exception:
-                ai_text = "現在AIサーバーが混み合っているため、最初の挨拶をスキップしました。そのまま占いたい内容を送信してください。"
+                ai_text = "現在星のめぐりが少し乱れているようです。最初の挨拶は控えさせていただきますが、どうぞお悩みをお話しください。"
 
             st.session_state.chat_history.append({"role": "user", "content": system_instruction, "is_system": True})
             st.session_state.chat_history.append({"role": "model", "content": ai_text, "is_system": False})
@@ -496,7 +572,8 @@ elif st.session_state.step == "chat":
         with st.chat_message(display_role):
             st.markdown(message["content"])
 
-    if prompt := st.chat_input("Nabiにメッセージを送信..."):
+    # ✨ NEW: 言葉遣いの洗練
+    if prompt := st.chat_input("Nabiに心の中の想いをお話しください..."):
         with st.chat_message("user"):
             st.markdown(prompt)
         
@@ -509,7 +586,7 @@ elif st.session_state.step == "chat":
             )
         
         with st.chat_message("assistant"):
-            with st.spinner("カードの声を聴いています..."):
+            with st.spinner("タロットからの啓示を受け取っています..."):
                 try:
                     response = client.models.generate_content(
                         model="gemini-flash-latest",
@@ -534,10 +611,15 @@ if st.session_state.step in ["verify", "chat"]:
         st.subheader("カード一覧")
         
         display_df = st.session_state.final_data if st.session_state.step == "chat" else st.session_state.original_df
+        
+        cards_html = '<div class="tarot-grid">'
         for index, row in display_df.iterrows():
-            pos_num = row['ポジション'].replace('pos_', '')
+            pos_num = row['ポジション'].replace('pos_', 'Pos.')
             num_text = f" / {row['数字']}" if row['数字'] != "-" else ""
-            st.markdown(f"**[{pos_num}] {row['カード名']}**<br><span style='font-size:0.85em; color:#C5A059;'>{row['向き']}{num_text}</span>", unsafe_allow_html=True)
+            cards_html += f'<div class="tarot-card"><div class="tarot-pos">{pos_num}</div><div class="tarot-name">{row["カード名"]}</div><div class="tarot-detail">{row["向き"]}{num_text}</div></div>'
+        cards_html += '</div>'
+        
+        st.markdown(cards_html, unsafe_allow_html=True)
             
         st.divider() 
         
@@ -560,7 +642,8 @@ if st.session_state.step in ["verify", "chat"]:
             )
             st.divider()
 
-        if st.button("リセットして最初から"):
+        # ✨ NEW: 言葉遣いの洗練
+        if st.button("鑑定を終え、新たな問いに向かう"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
