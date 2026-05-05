@@ -27,13 +27,13 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Nabi AI Tarot Reader", layout="wide")
 
-# --- プレミアム＆グラフィカル CSS ---
+# --- 💎 プレミアム＆グラフィカル CSS ---
 custom_css = """
 <style>
-/* ✨ NEW: 高級欧文フォント（Cinzel）のインポート */
+/* 高級欧文フォント（Cinzel）のインポート */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap');
 
-/* ✨ NEW: 優雅なフェードインアニメーション */
+/* 優雅なフェードインアニメーション */
 @keyframes elegantFadeIn {
     0% { opacity: 0; transform: translateY(15px); }
     100% { opacity: 1; transform: translateY(0); }
@@ -70,7 +70,7 @@ h2, h3, p, .mincho {
     padding: 0 !important;
     margin: 0 0 12px 0 !important;
     font-weight: 400 !important;
-    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
+    font-family: 'Cinzel', serif !important; 
 }
 .premium-title-banner p {
     color: #C5A059 !important;
@@ -143,6 +143,29 @@ div.stButton > button[kind="primary"]:hover {
     color: #C5A059 !important;
 }
 
+/* ✨ NEW: セカンダリボタン（リセットボタン等）の視認性とデザイン向上 */
+div.stButton > button[kind="secondary"] {
+    background-color: transparent !important;
+    border: 1px solid #C5A059 !important;
+    border-radius: 2px !important;
+    padding: 10px 30px !important;
+    transition: all 0.4s ease;
+}
+div.stButton > button[kind="secondary"],
+div.stButton > button[kind="secondary"] * {
+    color: #C5A059 !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.1em;
+}
+div.stButton > button[kind="secondary"]:hover {
+    background-color: #C5A059 !important;
+    box-shadow: 0 4px 15px rgba(197, 160, 89, 0.3) !important;
+}
+div.stButton > button[kind="secondary"]:hover,
+div.stButton > button[kind="secondary"]:hover * {
+    color: #1A2525 !important;
+}
+
 /* サイドバーの調整 */
 [data-testid="stSidebar"] {
     background-color: #1A2525 !important;
@@ -209,7 +232,7 @@ img {
     padding-bottom: 4px;
     width: 80%;
     text-transform: uppercase;
-    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
+    font-family: 'Cinzel', serif !important; 
 }
 .tarot-name {
     color: #FFFFFF;
@@ -217,7 +240,7 @@ img {
     font-weight: 400;
     margin: 0 0 8px 0;
     line-height: 1.2;
-    font-family: 'Cinzel', serif !important; /* ✨ 欧文フォント適用 */
+    font-family: 'Cinzel', serif !important; 
 }
 .tarot-detail {
     color: #C5A059;
@@ -438,7 +461,6 @@ st.markdown("""
 # STEP 1: 画像のアップロード
 # ------------------------------------------
 if st.session_state.step == "upload":
-    # ✨ NEW: 言葉遣いの洗練
     st.write("導きを求めるケルト十字展開の画像をアップロードしてください。")
     uploaded_file = st.file_uploader("画像を選択...", type=["jpg", "jpeg", "png"])
     
@@ -460,7 +482,6 @@ if st.session_state.step == "upload":
                 st.rerun()
                 
         with col_btn3:
-            # ✨ NEW: 言葉遣いの洗練
             if st.button("カードの叡智を読み解く", type="primary"):
                 with st.spinner("Nabiが星の配置とカードの声を読み解いています..."):
                     raw_data = analyze_image(st.session_state.current_image)
@@ -484,7 +505,6 @@ if st.session_state.step == "upload":
 # ------------------------------------------
 elif st.session_state.step == "verify":
     st.markdown("### 読み解いたカードの確認")
-    # ✨ NEW: 言葉遣いの洗練
     st.write("Nabiが受け取ったカードの啓示です。もし本来の展開と異なる場合は、表のセルをクリックして直接修正し、Nabiに正しい道を教えてください。")
     
     edited_df = st.data_editor(
@@ -572,7 +592,6 @@ elif st.session_state.step == "chat":
         with st.chat_message(display_role):
             st.markdown(message["content"])
 
-    # ✨ NEW: 言葉遣いの洗練
     if prompt := st.chat_input("Nabiに心の中の想いをお話しください..."):
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -627,22 +646,19 @@ if st.session_state.step in ["verify", "chat"]:
             st.subheader("鑑定書の出力")
             st.write("これまでの鑑定結果をPDF形式でダウンロードできます。")
             
-            pdf_data = generate_pdf_report(
-                st.session_state.chat_history, 
-                st.session_state.final_data, 
-                st.session_state.image
-            )
-            
             st.download_button(
                 label="鑑定書をダウンロード (PDF)",
-                data=pdf_data,
+                data=generate_pdf_report(
+                    st.session_state.chat_history, 
+                    st.session_state.final_data, 
+                    st.session_state.image
+                ),
                 file_name="nabi_tarot_report.pdf",
                 mime="application/pdf",
                 type="primary"
             )
             st.divider()
 
-        # ✨ NEW: 言葉遣いの洗練
         if st.button("鑑定を終え、新たな問いに向かう"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
