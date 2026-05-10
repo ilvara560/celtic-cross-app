@@ -30,29 +30,24 @@ st.set_page_config(page_title="Nabi AI Tarot Reader", layout="wide")
 # --- 💎 プレミアム＆グラフィカル CSS ---
 custom_css = """
 <style>
-/* 高級欧文フォント（Cinzel）のインポート */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap');
 
-/* 優雅なフェードインアニメーション */
 @keyframes elegantFadeIn {
     0% { opacity: 0; transform: translateY(15px); }
     100% { opacity: 1; transform: translateY(0); }
 }
 
-/* 画面全体にアニメーションを適用 */
 .stApp {
     animation: elegantFadeIn 1.0s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     background-color: #FAFCFC;
     color: #2C3E50;
 }
 
-/* タイポグラフィ */
 h2, h3, p, .mincho {
     font-family: "Hiragino Mincho ProN", "Yu Mincho", serif !important;
     letter-spacing: 0.05em; 
 }
 
-/* 重厚かつ繊細なタイトルバナー */
 .premium-title-banner {
     background: linear-gradient(135deg, #1A2525, #133B3A);
     padding: 50px 20px;
@@ -80,7 +75,6 @@ h2, h3, p, .mincho {
     font-family: "Hiragino Mincho ProN", "Yu Mincho", serif !important;
 }
 
-/* 見出しのスタイル */
 h3 {
     background-color: transparent !important;
     color: #133B3A !important;
@@ -94,7 +88,6 @@ h3 {
     font-weight: 400 !important;
 }
 
-/* ファイルアップローダーの洗練 */
 [data-testid="stFileUploader"] label p {
     color: #133B3A !important;
     font-weight: 400 !important;
@@ -125,7 +118,6 @@ h3 {
     background-color: #C5A059 !important;
 }
 
-/* プライマリボタンのモダン化 */
 div.stButton > button[kind="primary"] {
     background-color: #133B3A !important;
     color: white !important;
@@ -143,7 +135,6 @@ div.stButton > button[kind="primary"]:hover {
     color: #C5A059 !important;
 }
 
-/* ✨ NEW: セカンダリボタン（リセットボタン等）の視認性とデザイン向上 */
 div.stButton > button[kind="secondary"] {
     background-color: transparent !important;
     border: 1px solid #C5A059 !important;
@@ -166,7 +157,6 @@ div.stButton > button[kind="secondary"]:hover * {
     color: #1A2525 !important;
 }
 
-/* サイドバーの調整 */
 [data-testid="stSidebar"] {
     background-color: #1A2525 !important;
 }
@@ -184,7 +174,6 @@ div.stButton > button[kind="secondary"]:hover * {
     border-color: #2C3E50;
 }
 
-/* 画像の最適化（最大幅制限と角丸） */
 img {
     max-width: 100% !important; 
     height: auto !important; 
@@ -196,7 +185,6 @@ img {
     margin-bottom: 15px;
 }
 
-/* グラフィカル・カードUIスタイル */
 .tarot-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -439,6 +427,109 @@ def generate_pdf_report(chat_history, df, img):
     buffer.seek(0)
     return buffer
 
+# --- ✨ NEW: 独立ウィンドウ型・虫眼鏡（ルーペ）HTML/JS生成関数 ---
+def st_loupe_image(pil_image):
+    buffered = BytesIO()
+    pil_image.save(buffered, format="PNG")
+    import base64
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    img_data_url = f"data:image/png;base64,{img_str}"
+
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* iframe内でスクロールバーを出さない */
+        }}
+        .img-container {{
+            position: relative;
+            width: 100%;
+            cursor: crosshair;
+        }}
+        .main-image {{
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }}
+        /* 拡大表示ウィンドウ（ルーペ）のデザイン */
+        .loupe {{
+            position: absolute;
+            display: none;
+            width: 140px;   /* カード約1枚分の幅 */
+            height: 220px;  /* カード約1枚分の高さ */
+            border: 2px solid #C5A059; /* ゴールドの枠線 */
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6); /* 強い影で手前に浮き上がらせる */
+            background-image: url('{img_data_url}');
+            background-repeat: no-repeat;
+            pointer-events: none; /* マウスイベントを貫通させる（チラつき防止） */
+            z-index: 1000;
+            background-color: #1A2525;
+        }}
+    </style>
+    </head>
+    <body>
+        <div class="img-container" id="container">
+            <img src="{img_data_url}" class="main-image" id="mainImg">
+            <div class="loupe" id="loupe"></div>
+        </div>
+
+        <script>
+            const container = document.getElementById('container');
+            const img = document.getElementById('mainImg');
+            const loupe = document.getElementById('loupe');
+
+            const zoomLevel = 2.5; // 拡大倍率（2.5倍でカード1枚分に最適化）
+
+            // マウスが画像に乗った時：拡大ウィンドウを表示
+            img.addEventListener('mouseenter', () => {{
+                loupe.style.display = 'block';
+            }});
+
+            // マウスが画像から外れた時：拡大ウィンドウを消す
+            img.addEventListener('mouseleave', () => {{
+                loupe.style.display = 'none';
+            }});
+
+            // マウスが画像上で動いている時：拡大ウィンドウを連動させる
+            img.addEventListener('mousemove', (e) => {{
+                const rect = img.getBoundingClientRect();
+                
+                // 画像内のマウスのX座標・Y座標を計算
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // ルーペの背景画像のサイズを、元画像×ズーム倍率 に設定
+                loupe.style.backgroundSize = (img.width * zoomLevel) + 'px ' + (img.height * zoomLevel) + 'px';
+
+                const loupeWidth = loupe.offsetWidth;
+                const loupeHeight = loupe.offsetHeight;
+
+                // ルーペの枠自体をマウスの中心に移動させる
+                loupe.style.left = (x - loupeWidth / 2) + 'px';
+                loupe.style.top = (y - loupeHeight / 2) + 'px';
+
+                // 背景画像の表示位置を計算し、マウスがある部分が枠内の中心にくるようにずらす
+                const bgX = -(x * zoomLevel) + (loupeWidth / 2);
+                const bgY = -(y * zoomLevel) + (loupeHeight / 2);
+
+                loupe.style.backgroundPosition = bgX + 'px ' + bgY + 'px';
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    aspect_ratio = pil_image.height / pil_image.width
+    import streamlit.components.v1 as components
+    # iframeの高さは元画像の縦横比に合わせて計算（余白防止のために+2px）
+    components.html(html_code, width=300, height=int(300 * aspect_ratio) + 2)
+
+
 # ==========================================
 # 3. 状態管理（Session State）
 # ==========================================
@@ -626,7 +717,11 @@ elif st.session_state.step == "chat":
 if st.session_state.step in ["verify", "chat"]:
     with st.sidebar:
         st.header("展開情報")
-        st.image(st.session_state.image, caption="アップロード画像")
+        
+        # ✨ NEW: 独立ウィンドウ型の虫眼鏡ルーペ表示
+        st_loupe_image(st.session_state.image)
+        st.caption("画像にマウスを乗せると、カード1枚分の拡大ウィンドウが出現します。")
+        
         st.subheader("カード一覧")
         
         display_df = st.session_state.final_data if st.session_state.step == "chat" else st.session_state.original_df
