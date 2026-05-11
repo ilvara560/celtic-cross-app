@@ -27,6 +27,25 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Nabi AI Tarot Reader", layout="wide")
 
+TAROT_CARDS_LIST = [
+    # 大アルカナ
+    "Fool", "Magician", "High Priestess", "Empress", "Emperor",
+    "Hierophant", "Lovers", "Chariot", "Strength", "Hermit",
+    "Wheel of Fortune", "Justice", "Hanged Man", "Death", "Temperance",
+    "Devil", "Tower", "Star", "Moon", "Sun", "Judgement", "World",
+    # 小アルカナ（数札用スート）
+    "Wands", "Cups", "Swords", "Pentacles",
+    # 小アルカナ（エース特別枠）
+    "Ace of Wands", "Ace of Cups", "Ace of Swords", "Ace of Pentacles",
+    # 小アルカナ（コートカード用）
+    "Page of Wands", "Knight of Wands", "Queen of Wands", "King of Wands",
+    "Page of Cups", "Knight of Cups", "Queen of Cups", "King of Cups",
+    "Page of Swords", "Knight of Swords", "Queen of Swords", "King of Swords",
+    "Page of Pentacles", "Knight of Pentacles", "Queen of Pentacles", "King of Pentacles",
+    # その他
+    "Unknown", "-"
+]
+
 # --- 💎 プレミアム＆グラフィカル CSS ---
 custom_css = """
 <style>
@@ -427,7 +446,7 @@ def generate_pdf_report(chat_history, df, img):
     buffer.seek(0)
     return buffer
 
-# --- ✨ NEW: 独立ウィンドウ型・虫眼鏡（ルーペ）HTML/JS生成関数 ---
+# --- ✨ 元の安定・確実な表示コード（components.html）に戻しました ---
 def st_loupe_image(pil_image):
     buffered = BytesIO()
     pil_image.save(buffered, format="PNG")
@@ -443,7 +462,7 @@ def st_loupe_image(pil_image):
         body {{
             margin: 0;
             padding: 0;
-            overflow: hidden; /* iframe内でスクロールバーを出さない */
+            overflow: hidden; 
         }}
         .img-container {{
             position: relative;
@@ -456,18 +475,17 @@ def st_loupe_image(pil_image):
             border-radius: 8px;
             display: block;
         }}
-        /* 拡大表示ウィンドウ（ルーペ）のデザイン */
         .loupe {{
             position: absolute;
             display: none;
-            width: 140px;   /* カード約1枚分の幅 */
-            height: 220px;  /* カード約1枚分の高さ */
-            border: 2px solid #C5A059; /* ゴールドの枠線 */
+            width: 140px;   
+            height: 220px;  
+            border: 2px solid #C5A059; 
             border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6); /* 強い影で手前に浮き上がらせる */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6); 
             background-image: url('{img_data_url}');
             background-repeat: no-repeat;
-            pointer-events: none; /* マウスイベントを貫通させる（チラつき防止） */
+            pointer-events: none; 
             z-index: 1000;
             background-color: #1A2525;
         }}
@@ -484,37 +502,30 @@ def st_loupe_image(pil_image):
             const img = document.getElementById('mainImg');
             const loupe = document.getElementById('loupe');
 
-            const zoomLevel = 2.5; // 拡大倍率（2.5倍でカード1枚分に最適化）
+            const zoomLevel = 2.5; 
 
-            // マウスが画像に乗った時：拡大ウィンドウを表示
             img.addEventListener('mouseenter', () => {{
                 loupe.style.display = 'block';
             }});
 
-            // マウスが画像から外れた時：拡大ウィンドウを消す
             img.addEventListener('mouseleave', () => {{
                 loupe.style.display = 'none';
             }});
 
-            // マウスが画像上で動いている時：拡大ウィンドウを連動させる
             img.addEventListener('mousemove', (e) => {{
                 const rect = img.getBoundingClientRect();
                 
-                // 画像内のマウスのX座標・Y座標を計算
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
 
-                // ルーペの背景画像のサイズを、元画像×ズーム倍率 に設定
                 loupe.style.backgroundSize = (img.width * zoomLevel) + 'px ' + (img.height * zoomLevel) + 'px';
 
                 const loupeWidth = loupe.offsetWidth;
                 const loupeHeight = loupe.offsetHeight;
 
-                // ルーペの枠自体をマウスの中心に移動させる
                 loupe.style.left = (x - loupeWidth / 2) + 'px';
                 loupe.style.top = (y - loupeHeight / 2) + 'px';
 
-                // 背景画像の表示位置を計算し、マウスがある部分が枠内の中心にくるようにずらす
                 const bgX = -(x * zoomLevel) + (loupeWidth / 2);
                 const bgY = -(y * zoomLevel) + (loupeHeight / 2);
 
@@ -526,7 +537,6 @@ def st_loupe_image(pil_image):
     """
     aspect_ratio = pil_image.height / pil_image.width
     import streamlit.components.v1 as components
-    # iframeの高さは元画像の縦横比に合わせて計算（余白防止のために+2px）
     components.html(html_code, width=300, height=int(300 * aspect_ratio) + 2)
 
 
@@ -578,14 +588,66 @@ if st.session_state.step == "upload":
                     raw_data = analyze_image(st.session_state.current_image)
                     df_data = []
                     positions = [f"pos_{i}" for i in range(1, 11)]
+                    
+                    word_to_num = {
+                        "two": "2", "three": "3", "four": "4", "five": "5",
+                        "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"
+                    }
+                    court_titles = ["page", "knight", "queen", "king"]
+                    valid_suits = ["wands", "cups", "swords", "pentacles"]
+                    
                     for pos in positions:
                         card = raw_data.get(pos, {})
+                        raw_name = card.get("name", "").strip()
+                        raw_num = str(card.get("number", "")).strip()
+                        
+                        if raw_name.lower().startswith("the "):
+                            raw_name = raw_name[4:].strip()
+                            
+                        final_name = raw_name
+                        final_num = raw_num
+                            
+                        if " of " in raw_name.lower():
+                            parts = re.split(r'\s+of\s+', raw_name, flags=re.IGNORECASE)
+                            if len(parts) == 2:
+                                rank = parts[0].strip().lower() 
+                                suit = parts[1].strip().capitalize() 
+                                
+                                if suit.lower() in valid_suits:
+                                    if rank in court_titles:
+                                        final_name = f"{rank.capitalize()} of {suit}"
+                                        final_num = "-" 
+                                    elif rank == "ace":
+                                        final_name = f"Ace of {suit}"
+                                        final_num = "1"
+                                    else:
+                                        final_name = suit 
+                                        if not final_num or final_num == "-":
+                                            if rank in word_to_num:
+                                                final_num = word_to_num[rank]
+                                            else:
+                                                final_num = parts[0].strip()
+                                
+                        matched_name = "Unknown"
+                        for valid_card in TAROT_CARDS_LIST:
+                            if final_name.lower() == valid_card.lower():
+                                matched_name = valid_card
+                                break
+                                
+                        raw_ori = card.get("orientation", "").strip()
+                        matched_ori = "不明"
+                        if "正" in raw_ori:
+                            matched_ori = "正位置"
+                        elif "逆" in raw_ori:
+                            matched_ori = "逆位置"
+                        
                         df_data.append({
                             "ポジション": pos,
-                            "カード名": card.get("name", ""),
-                            "数字": card.get("number", ""),
-                            "向き": card.get("orientation", "")
+                            "カード名": matched_name, 
+                            "数字": final_num,
+                            "向き": matched_ori
                         })
+                        
                     st.session_state.original_df = pd.DataFrame(df_data)
                     st.session_state.image = st.session_state.current_image 
                     st.session_state.step = "verify"
@@ -597,12 +659,31 @@ if st.session_state.step == "upload":
 elif st.session_state.step == "verify":
     st.markdown("### 読み解いたカードの確認")
     st.write("Nabiが受け取ったカードの啓示です。もし本来の展開と異なる場合は、表のセルをクリックして直接修正し、Nabiに正しい道を教えてください。")
-    
+
     edited_df = st.data_editor(
         st.session_state.original_df, 
         width="stretch", 
         hide_index=True,
-        column_config={"ポジション": st.column_config.Column(disabled=True)},
+        column_config={
+            "ポジション": st.column_config.Column(disabled=True),
+            "カード名": st.column_config.SelectboxColumn(
+                "カード名 (種類)",
+                help="カードの種類を選択してください",
+                width="large",
+                options=TAROT_CARDS_LIST,
+                required=True,
+            ),
+            "数字": st.column_config.TextColumn(
+                "数字",
+                help="小アルカナの数字（1〜10）を入力してください。エース(1)・コートカードは「-」のままでも構いません。",
+            ),
+            "向き": st.column_config.SelectboxColumn(
+                "向き",
+                help="正位置か逆位置を選択してください",
+                options=["正位置", "逆位置", "不明"],
+                required=True,
+            )
+        },
         height=400 
     )
     
@@ -718,7 +799,6 @@ if st.session_state.step in ["verify", "chat"]:
     with st.sidebar:
         st.header("展開情報")
         
-        # ✨ NEW: 独立ウィンドウ型の虫眼鏡ルーペ表示
         st_loupe_image(st.session_state.image)
         st.caption("画像にマウスを乗せると、カード1枚分の拡大ウィンドウが出現します。")
         
