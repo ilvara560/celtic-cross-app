@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import base64
 import pandas as pd
 import PIL.Image
 import streamlit as st
@@ -20,12 +21,25 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 
 # ==========================================
-# 1. 初期設定とスキーマ定義
+# 1. 初期設定と基本定義
 # ==========================================
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 st.set_page_config(page_title="Nabi AI Tarot Reader", layout="wide")
+
+# --- 🔐 iOSアプリ専用 セキュリティゲート ---
+# Xcode側で設定した「?auth=nabi_secure_gate」というパラメータがないアクセスを遮断します
+query_params = st.query_params
+if "auth" not in query_params or query_params["auth"] != "nabi_secure_gate":
+    st.markdown("""
+    <div style="text-align:center; margin-top:100px; font-family: 'Hiragino Mincho ProN', serif;">
+        <h2 style="color:#133B3A; letter-spacing: 0.05em;">Natal Chart App</h2>
+        <p style="color:#C5A059; letter-spacing:0.1em; font-size:1.1rem;">このコンテンツはアプリ内限定です</p>
+        <p style="font-size:0.9em; color:#7F8C8D;">App Storeよりアプリをダウンロードし、プレミアム鑑定をご利用ください。</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()  # 条件を満たさない場合は、これ以降のコードを実行せず完全に停止
 
 TAROT_CARDS_LIST = [
     # 大アルカナ
@@ -259,6 +273,9 @@ img {
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
+# ==========================================
+# 2. AI構造化出力用のスキーマ定義
+# ==========================================
 class CardAnalysis(BaseModel):
     name: str = Field(description="カードの英語名")
     number: str = Field(description="カードの数字")
@@ -277,7 +294,7 @@ class TarotReading(BaseModel):
     pos_10: CardAnalysis
 
 # ==========================================
-# 2. 関数群
+# 3. ロジック関数群
 # ==========================================
 def analyze_image(img):
     client = genai.Client(api_key=API_KEY)
@@ -289,10 +306,12 @@ def analyze_image(img):
     except FileNotFoundError:
         st.error(f"ファイル {initial_file} が見つかりません。先に設定を実行してください。")
         st.stop()
+    
     current_prompt = ""
     if os.path.exists(current_file):
         with open(current_file, "r", encoding="utf-8") as f:
             current_prompt = f.read()
+            
     final_prompt = f"{initial_prompt}\n【過去の分析から得られた注意点・カード見分け方のコツ】\n{current_prompt}\n上記を踏まえ、10枚のカード名、数字、向きを出力してください。"
     try:
         response = client.models.generate_content(
@@ -312,9 +331,11 @@ def update_learning_prompt(differences, img):
     if os.path.exists(current_file):
         with open(current_file, "r", encoding="utf-8") as f:
             current_prompt = f.read()
+            
     error_report = ""
     for diff in differences:
         error_report += f"- {diff['ポジション']}: 正解は {diff['正解']} ですが、AIは {diff['AIの判定']} と誤認しました。\n"
+        
     meta_prompt = f"あなたは優秀なAIプロンプトエンジニアです。\nタロットカードの画像認識において、ユーザーから以下の修正指示（エラー報告）がありました。\n[現在の見分け方のコツ]\n{current_prompt}\n[ユーザーからのエラー報告（正解データ）]\n{error_report}\nこの間違いを二度と繰り返さないように、[現在の見分け方のコツ]をアップデートしてください。\n出力は **新しい見分け方のコツのテキストのみ** としてください。"
     try:
         response = client.models.generate_content(
@@ -327,7 +348,7 @@ def update_learning_prompt(differences, img):
         st.toast("サーバー混雑のため、今回のAI自動学習はスキップされました。")
         return False
 
-# --- PDF鑑定書 ---
+# --- PDF鑑定書生成関数 ---
 def generate_pdf_report(chat_history, df, img):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=25*mm, bottomMargin=25*mm)
@@ -446,11 +467,10 @@ def generate_pdf_report(chat_history, df, img):
     buffer.seek(0)
     return buffer
 
-# --- ✨ 元の安定・確実な表示コード（components.html）に戻しました ---
+# --- 🔍 マウスホバー拡大鏡 (JavaScriptコンポーネント) ---
 def st_loupe_image(pil_image):
     buffered = BytesIO()
     pil_image.save(buffered, format="PNG")
-    import base64
     img_str = base64.b64encode(buffered.getvalue()).decode()
     img_data_url = f"data:image/png;base64,{img_str}"
 
@@ -541,7 +561,7 @@ def st_loupe_image(pil_image):
 
 
 # ==========================================
-# 3. 状態管理（Session State）
+# 4. 状態管理（Session State）
 # ==========================================
 if "step" not in st.session_state:
     st.session_state.step = "upload"
@@ -549,7 +569,7 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # ==========================================
-# 4. メインUIの構築
+# 5. メインUIの構築
 # ==========================================
 st.markdown("""
 <div class="premium-title-banner">
@@ -572,7 +592,7 @@ if st.session_state.step == "upload":
         
         col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
         with col_img2:
-            st.image(st.session_state.current_image, caption="現在の画像", width="stretch")
+            st.image(st.session_state.current_image, caption="現在の画像", use_container_width=True)
             
         st.markdown("<p style='font-size:0.9em; color:#7F8C8D; margin-bottom: 20px; text-align:center;'>※ 画像が横向きの場合は、正しい向きに回転してから解析を実行してください。</p>", unsafe_allow_html=True)
         
@@ -793,7 +813,7 @@ elif st.session_state.step == "chat":
 
 
 # ==========================================
-# 5. サイドバーの共通構築
+# 6. サイドバーの共通構築
 # ==========================================
 if st.session_state.step in ["verify", "chat"]:
     with st.sidebar:
